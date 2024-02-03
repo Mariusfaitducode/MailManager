@@ -46,16 +46,23 @@ class MailManager:
         return self.messages
     
 
-    def analyse(self, count=50):
+    def analyse(self, count=50, interface=None):
 
         messages = self.get_mailbox()
 
         list = {}
 
         print(f"Analyzing {count} messages")
-        for num in messages[-count:]: 
 
-            # print(f"Analyzing message {num}")
+        value = 0
+
+        for num in messages[-count:]: 
+            value += 1 / count
+            interface.progress_bar.set(value)
+            interface.update()
+
+
+            print(f"Analyzing message {num}")
             status, data = self.mail.fetch(num, '(RFC822)')
             raw_email = data[0][1]
 
@@ -72,3 +79,17 @@ class MailManager:
             list[sender].append(num)
 
         return list
+    
+    def delete_mail_list(self, mail_list):
+
+        print(mail_list)
+
+        for mail_id in mail_list:
+            
+            mail_id = mail_id.decode('utf-8')
+            print(f"Deleting mail {mail_id}")
+            self.mail.store(mail_id, '+FLAGS', '\\Deleted')
+
+
+        self.mail.expunge()
+        print("Deleted mails successfully!")

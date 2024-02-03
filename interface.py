@@ -5,6 +5,8 @@ from tkinter import ttk
 from tkinter import Canvas, Scrollbar, Frame
 import customtkinter as ctk
 
+from collections import OrderedDict
+
 
 class Interface(ctk.CTk):
 
@@ -17,7 +19,7 @@ class Interface(ctk.CTk):
         
 
         ctk.set_appearance_mode("dark")
-        ctk.set_default_color_theme("dark-blue")
+        ctk.set_default_color_theme("blue")
         
         self.show_connexion_frame(user=mail_manager.mail_user, password=mail_manager.mail_password)
 
@@ -85,10 +87,7 @@ class Interface(ctk.CTk):
         # Champ pour le nombre de mails à analyser
         self.mail_count_entry = ctk.CTkEntry(self)
         self.mail_count_entry.grid(column=1, row=1, pady=20)
-        self.mail_count_entry.insert(0, "5")
-
-        validate_command = self.register(self.on_validate_entry), '%P'
-        self.mail_count_entry.configure(validate='key', validatecommand=validate_command)
+        self.mail_count_entry.insert(0, 5)
 
         # Bouton Analyse
         analyse_button = ctk.CTkButton(self, text="Analyse", command=self.on_analyse_clicked, fg_color="#4CAF50")  # Vert
@@ -99,15 +98,20 @@ class Interface(ctk.CTk):
         self.logout_button.grid(column=1, row=2, pady=10)
 
 
-        
-    def on_validate_entry(P):
-        return P.isdigit() or P == ""
-
     def on_analyse_clicked(self):
         # Récupérez le nombre de mails à analyser et lancez l'analyse
         mail_count = int(self.mail_count_entry.get())
 
-        list = self.mail_manager.analyse(count=mail_count)
+
+        self.clear_widgets()
+
+        self.progress_bar = ctk.CTkProgressBar(self)
+        self.progress_bar.pack(pady=20)
+        self.progress_bar.set(0)
+
+        self.update()
+
+        list = self.mail_manager.analyse(count=mail_count, interface=self)
 
         self.clear_widgets()
         self.show_analyse_frame(list=list)
@@ -124,7 +128,7 @@ class Interface(ctk.CTk):
 
     def show_analyse_frame(self, list):
 
-        self.geometry("600x400")
+        self.geometry("500x500")
 
         self.canvas = Canvas(self, bg="#2B2B2B", highlightthickness=0)
         self.canvas.pack(side="left", fill="both", expand=True)
@@ -154,32 +158,39 @@ class Interface(ctk.CTk):
         self.table_frame.bind("<Configure>", lambda event: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
 
         # self.canvas.configure(yscrollcommand=self.scrollbar.set)
-
         self.populate_table(list)
 
 
     def populate_table(self, list):
+
+        list = OrderedDict(sorted(list.items(), key=lambda item: len(item[1]), reverse=True))
+
         i=0
         for sender in list:  # Exemple avec 50 lignes
             i+=1
             ctk.CTkLabel(self.table_frame, text=sender, width=200, height=30, corner_radius=0).grid(row=i, column=0, sticky="ew", padx=10, pady=2)
             ctk.CTkLabel(self.table_frame, text=len(list[sender]), width=100, height=30, corner_radius=0).grid(row=i, column=1, sticky="ew", padx=10, pady=2)
-            ctk.CTkButton(self.table_frame, text="Supprimer", width=100, height=30, corner_radius=0, command=lambda i=i: self.delete_row(i)).grid(row=i, column=2, sticky="ew", padx=10, pady=2)
+
+            delete_button = ctk.CTkButton(self.table_frame, text="Supprimer", 
+                          width=100, height=30, corner_radius=0)
+            
+            delete_button.grid(row=i, column=2, sticky="ew", padx=10, pady=2)
+
+            delete_button.configure(command=lambda sender=sender, delete_button=delete_button: self.delete_row(list[sender], delete_button))
 
 
-    def delete_row(self, index):
-        # Supprime une ligne du tableau (Cette fonction doit être améliorée pour supprimer spécifiquement les widgets d'une ligne)
-        print(f"Suppression de la ligne {index} demandée")
+    def delete_row(self, mail_list, delete_button):
+
+        print(mail_list)
+        self.mail_manager.delete_mail_list(mail_list)
+
+        delete_button.destroy()
+
+
 
 
     def on_frame_configure(self, event):
-        # Met à jour la zone de défilement pour englober le frame interne
         self.canvas.configure(scrollregion=self.canvas.bbox("all"))
-
-
-    def delete_email(self):
-        selected_item = self.tree.selection()[0]  # Obtenir l'item sélectionné
-        self.tree.delete(selected_item) 
 
 
     def on_mousewheel(self, event):
