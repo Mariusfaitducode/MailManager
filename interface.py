@@ -2,6 +2,7 @@
 import tkinter as tk
 from tkinter import ttk
 
+from tkinter import Canvas, Scrollbar, Frame
 import customtkinter as ctk
 
 
@@ -20,6 +21,10 @@ class Interface(ctk.CTk):
         
         self.show_connexion_frame(user=mail_manager.mail_user, password=mail_manager.mail_password)
 
+        # self.show_analyse_frame(list=[])
+
+
+    ### Page connexion
 
     def show_connexion_frame(self, user, password):
 
@@ -62,6 +67,8 @@ class Interface(ctk.CTk):
             widget.destroy()
 
 
+    ### Page action
+
     def show_action_frame(self):
         # Supprimer les widgets existants
         self.clear_widgets()
@@ -78,7 +85,7 @@ class Interface(ctk.CTk):
         # Champ pour le nombre de mails à analyser
         self.mail_count_entry = ctk.CTkEntry(self)
         self.mail_count_entry.grid(column=1, row=1, pady=20)
-        self.mail_count_entry.insert(0, "50")
+        self.mail_count_entry.insert(0, "5")
 
         validate_command = self.register(self.on_validate_entry), '%P'
         self.mail_count_entry.configure(validate='key', validatecommand=validate_command)
@@ -98,15 +105,12 @@ class Interface(ctk.CTk):
 
     def on_analyse_clicked(self):
         # Récupérez le nombre de mails à analyser et lancez l'analyse
-        mail_count = self.mail_count_entry.get()
-        print(f"Analyse de {mail_count} mails...")
+        mail_count = int(self.mail_count_entry.get())
 
-        messages = self.mail_manager.get_mailbox()
-
-        print(f"Analyse de {len(messages)} mails terminée!")
+        list = self.mail_manager.analyse(count=mail_count)
 
         self.clear_widgets()
-        self.show_analyse_frame(messages=messages)
+        self.show_analyse_frame(list=list)
 
 
     def on_logout_clicked(self):
@@ -116,40 +120,70 @@ class Interface(ctk.CTk):
         self.create_connexion_widgets(user=self.mail_manager.mail_user, password=self.mail_manager.mail_password)
 
 
-    def show_analyse_frame(self, messages):
-        
-        # Création du tableau d'adresses mail
-        self.tree = ttk.Treeview(self, columns=("Email"), show="headings")
-        self.tree.heading("Email", text="Adresse Email")
-        self.tree.column("Email", anchor=tk.CENTER)
+    ### Page analyse
 
-        # Ajout des barres de défilement
-        vsb = ttk.Scrollbar(self, orient="vertical", command=self.tree.yview)
-        hsb = ttk.Scrollbar(self, orient="horizontal", command=self.tree.xview)
-        self.tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+    def show_analyse_frame(self, list):
 
-        vsb.pack(side="right", fill="y")
-        hsb.pack(side="bottom", fill="x")
-        self.tree.pack(side="top", fill="both", expand=True)
+        self.geometry("600x400")
 
-        # Bouton pour simuler l'ajout d'adresses mail
-        self.load_button = ctk.CTkButton(self, text="Charger les Emails", command=self.load_emails)
-        self.load_button.pack(pady=10)
+        self.canvas = Canvas(self, bg="#2B2B2B", highlightthickness=0)
+        self.canvas.pack(side="left", fill="both", expand=True)
 
-        # Bouton de suppression
-        self.delete_button = ctk.CTkButton(self, text="Supprimer l'Email", command=self.delete_email)
-        self.delete_button.pack(pady=10)
+        style = ttk.Style()
+        style.theme_use("clam")
 
-    def load_emails(self):
-        # Simuler le chargement des emails
-        emails = ["user1@example.com", "user2@example.com", "user3@example.com"]
-        for email in emails:
-            self.tree.insert("", tk.END, values=(email,))
+        # Configurer le style de la Scrollbar pour un thème sombre
+        style.configure("Vertical.TScrollbar", background="#333333", troughcolor="#2B2B2B", bordercolor="#333333", arrowcolor="white")
+
+        # Scrollbar verticale
+        self.scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview, style="Vertical.TScrollbar")
+        self.scrollbar.pack(side="right", fill="y")
+
+        # Frame qui contiendra les widgets du tableau
+        self.table_frame = Frame(self.canvas, bg="#2B2B2B")
+        self.canvas.create_window((0, 0), window=self.table_frame, anchor="nw")
+
+        self.table_frame.bind("<Configure>", self.on_frame_configure)
+        # self.table_frame.bind("<MouseWheel>", self.on_mousewheel)
+
+
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        # self.canvas.bind("<MouseWheel>", self.on_mousewheel)
+        self.canvas.bind_all("<MouseWheel>", lambda event: self.on_mousewheel(event))
+        self.table_frame.bind("<Configure>", lambda event: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
+
+        # self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        self.populate_table(list)
+
+
+    def populate_table(self, list):
+        i=0
+        for sender in list:  # Exemple avec 50 lignes
+            i+=1
+            ctk.CTkLabel(self.table_frame, text=sender, width=200, height=30, corner_radius=0).grid(row=i, column=0, sticky="ew", padx=10, pady=2)
+            ctk.CTkLabel(self.table_frame, text=len(list[sender]), width=100, height=30, corner_radius=0).grid(row=i, column=1, sticky="ew", padx=10, pady=2)
+            ctk.CTkButton(self.table_frame, text="Supprimer", width=100, height=30, corner_radius=0, command=lambda i=i: self.delete_row(i)).grid(row=i, column=2, sticky="ew", padx=10, pady=2)
+
+
+    def delete_row(self, index):
+        # Supprime une ligne du tableau (Cette fonction doit être améliorée pour supprimer spécifiquement les widgets d'une ligne)
+        print(f"Suppression de la ligne {index} demandée")
+
+
+    def on_frame_configure(self, event):
+        # Met à jour la zone de défilement pour englober le frame interne
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+
 
     def delete_email(self):
         selected_item = self.tree.selection()[0]  # Obtenir l'item sélectionné
         self.tree.delete(selected_item) 
 
+
+    def on_mousewheel(self, event):
+        self.canvas.yview_scroll(int(-1*(event.delta/20)), "units")
     
 
 

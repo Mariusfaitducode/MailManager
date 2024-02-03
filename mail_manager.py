@@ -37,21 +37,25 @@ class MailManager:
         self.mail.select("inbox")
         print("Mailbox retrieved successfully!")
 
-        status, self.messages = self.mail.search(None, "ALL")
+        status, messages = self.mail.search(None, "ALL")
 
-        # self.messages = messages[0].split(b' ')
+        self.messages = messages[0].split()
 
         print(f"Found {len(self.messages)} messages")
 
         return self.messages
     
 
-    def analyse(self):
+    def analyse(self, count=50):
+
+        messages = self.get_mailbox()
 
         list = {}
 
-        for num in self.messages[-500:]: # Les 10 derniers messages
+        print(f"Analyzing {count} messages")
+        for num in messages[-count:]: 
 
+            # print(f"Analyzing message {num}")
             status, data = self.mail.fetch(num, '(RFC822)')
             raw_email = data[0][1]
 
@@ -59,10 +63,12 @@ class MailManager:
             
             sender = email.utils.parseaddr(email_message['From'])
 
-            # print(sender)
+            print(sender)
             sender = sender[1]
 
             if sender not in list:
                 list[sender] = []
 
             list[sender].append(num)
+
+        return list
