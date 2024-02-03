@@ -56,27 +56,29 @@ class MailManager:
 
         value = 0
 
-        for num in messages[-count:]: 
+        for uid in messages[-count:]: 
             value += 1 / count
             interface.progress_bar.set(value)
             interface.update()
 
+            try:
+                print(f"Analyzing message {uid}")
+                status, data = self.mail.uid('fetch', uid, '(BODY.PEEK[HEADER.FIELDS (FROM)] UID)')
+                raw_email = data[0][1]
 
-            print(f"Analyzing message {num}")
-            status, data = self.mail.fetch(num, '(RFC822)')
-            raw_email = data[0][1]
+                email_message = email.message_from_bytes(raw_email)
+                
+                sender = email.utils.parseaddr(email_message['From'])
 
-            email_message = email.message_from_bytes(raw_email)
-            
-            sender = email.utils.parseaddr(email_message['From'])
+                print(sender)
+                sender = sender[1]
 
-            print(sender)
-            sender = sender[1]
+                if sender not in list:
+                    list[sender] = []
 
-            if sender not in list:
-                list[sender] = []
-
-            list[sender].append(num)
+                list[sender].append(uid)
+            except Exception as e:
+                print(f"Error analyzing message {uid}: {e}")
 
         return list
     
