@@ -1,9 +1,31 @@
 # MailManager
 
-Application pour gérer ses e-mails. Le principe est le suivant, l'algorithme va parcourir la boîte de réception et regroupé tous les mails provenant du même envoyeur.
-Ainsi vous récupérez une liste classé par ordre décroissant de la quantité de mail envoyés par adresse mail. Les adresses qui ressortent le plus sont toujours les adresses de spam ou de notifications. Vous avez ainsi accès à un bouton supprimer permettant de nettoyer tous les mails venant de la même adresse en une seule fois.
+A small desktop app to clean up a Gmail inbox: it groups recent e-mails by sender and lets you delete everything from one sender in a single click.
 
-Très pratique pour faire un nettoyage de sa boîte mail occasionelle.
+## What it does
+- Connects to Gmail over IMAP with your address and a Google app password.
+- Scans the last N messages of the inbox (you choose N) and groups them by sender address.
+- Lists senders sorted by number of e-mails, which quickly surfaces newsletters, notifications and spam.
+- Deletes all scanned e-mails from a sender with one "Supprimer" (delete) button.
+- Dark-mode interface built with customtkinter, with a progress bar during the scan.
 
-Réalisé en python avec les librairies imaplib et customtkinter. 
-Disponible pour l'instant aux adresses gmail, pour se connecter il faut renseigner son mot de passe d'application, facilement retrouvable sur son compte google.
+## Tech stack
+Python, `imaplib`, `email`, customtkinter.
+
+## Run it locally
+1. Create a Google [app password](https://myaccount.google.com/apppasswords) for your account.
+2. Create a `config.ini` next to `main.py` (it is git-ignored) to pre-fill the login form:
+   ```ini
+   [DEFAULT]
+   Email = you@gmail.com
+   Password = your-app-password
+   ```
+3. Install and run:
+   ```bash
+   pip install customtkinter
+   python main.py
+   ```
+The interface is in French.
+
+## Context
+Personal side project from January 2024, built to make occasional inbox clean-ups faster. Only Gmail is supported for now.
